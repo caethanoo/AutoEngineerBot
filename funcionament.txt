@@ -1,0 +1,18 @@
+# Fluxo de Funcionamento do Bot
+
+1. **Program.cs (Orquestrador/Chefe):** 
+   - Define a URL alvo e inicia o processo.
+   - Envia a URL para o `ExtratorMercadoLivre`.
+
+2. **ExtratorMercadoLivre (Extrator/Trabalhador):** 
+   - Segue as regras definidas (Contrato `IExtratorDePrecos`).
+   - Acessa a internet (via HTTP) e traz o texto (HTML da página).
+   - Corta e analisa os dados (Lê o JSON escondido).
+   - Coloca os dados extraídos dentro da caixa (Objeto `Produto`).
+
+3. **Retorno e Avaliação (Program.cs):**
+   - Recebe o objeto `Produto` pronto.
+   - Verifica se o preço atingiu a meta (ex: "Está barato!").
+
+4. **Notificação (Alerta):**
+   - Se estiver no preço alvo, o `Program.cs` grita fazendo uma nova requisição via HTTP para notificar pelo Telegram.
