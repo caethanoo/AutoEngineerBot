@@ -1,80 +1,66 @@
 using System;
 using System.Threading.Tasks;
-using Spectre.Console;
-using AutoEngineerBot.Services;
+using MongoDB.Driver;
 using DotNetEnv;
+using AutoEngineerBot.Models;
+using AutoEngineerBot.Services;
 
-Env.TraversePath().Load();
-
-Console.Clear();
-AnsiConsole.Write(
-    new FigletText("AutoEngineer Bot")
-        .Centered()
-        .Color(Color.Blue));
-
-var extrator = new ExtratorMercadoLivre();
-string urlAlvo = "https://www.mercadolivre.com.br/console-sony-playstation-5-edico-slim-disk-1tb-branco-controle-sem-fio-dualsense-ps5-branco/p/MLB52897777";
-
-decimal precoDesejado = 10000.00m; 
-
-while (true)
+class Program
 {
-    AnsiConsole.MarkupLine($"\n[bold yellow]Iniciando varredura... Alvo: Menor que R$ {precoDesejado}[/]");
-
-    try 
+    static async Task Main(string[] args)
     {
-        var produto = await AnsiConsole.Status()
-            .StartAsync("Acessando a rede e quebrando a criptografia...", async ctx => 
-            {
-                return await extrator.ExtrairAsync(urlAlvo);
-            });
+        Console.Clear();
+        Console.WriteLine("Iniciando teste de conexão com o MongoDB...");
 
-        var tabela = new Table();
-        tabela.Border(TableBorder.Rounded);
-        tabela.AddColumn("[green]Produto[/]");
-        tabela.AddColumn(new TableColumn("[green]Preço Encontrado[/]").Centered());
-        tabela.AddColumn(new TableColumn("[green]Data da Coleta[/]").Centered());
+        Env.TraversePath().Load();
+        string connectionString = Environment.GetEnvironmentVariable("MONGO_CONNECTION");
 
-        string corPreco = produto.PrecoAtual <= precoDesejado ? "green" : "red";
+        var client = new MongoClient(connectionString);
+        var database = client.GetDatabase("AutoEngineerDB");
+        var colecaoProdutos = database.GetCollection<ProdutoMonitorado>("Produtos");
 
-        tabela.AddRow(
-            $"[bold white]{produto.Nome}[/]", 
-            $"[bold {corPreco}]R$ {produto.PrecoAtual}[/]", 
-            $"[grey]{produto.DataConsulta}[/]"
-        );
+        Console.WriteLine("🔍 Consultando o MongoDB para saber os links de hoje...");
 
-        AnsiConsole.Write(tabela);
+       
+        var produtosParaMonitorar = await colecaoProdutos.Find(_ => true).ToListAsync();
+        Console.WriteLine($"Encontrei {produtosParaMonitorar.Count} produtos para olhar hoje!\n");
 
-        if (produto.PrecoAtual <= precoDesejado)
+        var extrator = new ExtratorMercadoLivre();
+        
+        foreach (var produto in produtosParaMonitorar)
         {
-            AnsiConsole.MarkupLine("\n[bold green blink]🎉 PREÇO ALVO ATINGIDO! HORA DE COMPRAR! 🎉[/]");
+            Console.WriteLine($"- Produto: {produto.Nome}");
+            Console.WriteLine($"  Preço Alvo: R$ {produto.PrecoAlvo}");
+            Console.WriteLine($"  LINK >> {produto.Url}");
             
-            string tokenTelegram = Env.GetString("TELEGRAM_BOT_TOKEN");
-            string chatId = Env.GetString("TELEGRAM_CHAT_ID");
-            
-            if(string.IsNullOrEmpty(tokenTelegram) || string.IsNullOrEmpty(chatId))
+            try 
             {
-                AnsiConsole.MarkupLine("[bold red]⚠️ ERRO: Configure TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID no seu arquivo .env![/]");
-            }
-            else
-            {
-                string mensagem = $"🚨 ALERTA DO SEU BOT! 🚨\nO PS5 caiu para R$ {produto.PrecoAtual}!\nCorre para o link:\n{urlAlvo}";
-
-                string urlTelegram = $"https://api.telegram.org/bot{tokenTelegram}/sendMessage?chat_id={chatId}&text={Uri.EscapeDataString(mensagem)}";
-
-                using (HttpClient client = new HttpClient())
+                var produtoExtraido = await extrator.ExtrairAsync(produto.Url);
+                
+                Console.WriteLine($"  Preço Atual no ML: R$ {produtoExtraido.PrecoAtual}");
+                
+                if (produtoExtraido.PrecoAtual <= produto.PrecoAlvo)
                 {
-                    await client.GetAsync(urlTelegram);
-                    AnsiConsole.MarkupLine("[bold blue]📱 Bip Bip! Mensagem enviada para o seu celular![/]");
+                    Console.WriteLine("  🚨🚨🚨 ALERTA: O PREÇO CAIU PARA O SEU ALVO! HORA DE COMPRAR! 🚨🚨🚨");
                 }
+                else 
+                {
+                    Console.WriteLine("  ❌ O preço ainda está alto. Vamos continuar monitorando.");
+                }
+
+                // Atualizar o preço no banco de dados para o próximo dia
+                var filtro = Builders<ProdutoMonitorado>.Filter.Eq(p => p.Id, produto.Id);
+                var atualizacao = Builders<ProdutoMonitorado>.Update.Set(p => p.UltimoPreco, produtoExtraido.PrecoAtual);
+                
+                await colecaoProdutos.UpdateOneAsync(filtro, atualizacao);
+                Console.WriteLine("  💾 Preço atualizado no banco de dados com sucesso!");
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  ⚠️ Erro ao tentar ler o Mercado Livre: {ex.Message}");
+            }
+            
+            Console.WriteLine("------------------------------------------");
         }
     }
-    catch (Exception ex)
-    {
-        AnsiConsole.MarkupLine($"\n[bold red]Erro na varredura:[/] {ex.Message}");
-    }
-
-    AnsiConsole.MarkupLine("[grey]O bot vai dormir por 10 segundos...\n-----------------------------------\n[/]");
-    await Task.Delay(TimeSpan.FromSeconds(10)); 
 }
