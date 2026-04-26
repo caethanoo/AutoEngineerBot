@@ -1,39 +1,47 @@
-# AutoEngineerBot
+# AutoEngineerBot 🤖
 
-Bot desenvolvido em C# para monitorar preços de produtos no Mercado Livre. Ele realiza web scraping na página do produto, extrai os dados via JSON-LD e notifica o usuário via Telegram quando o preço atinge o valor desejado.
+Bot desenvolvido em C# para monitorar preços de produtos no Mercado Livre. O sistema realiza web scraping avançado, extrai metadados e notifica o usuário via Telegram quando o preço atinge o alvo desejado.
 
-## Tecnologias
+## 🚀 Funcionalidades
 
-- **C# / .NET 10**
-- **HtmlAgilityPack**: Parseamento e análise do HTML.
-- **System.Text.Json**: Leitura dos metadados extraídos do HTML.
-- **Spectre.Console**: Interface no terminal.
-- **DotNetEnv**: Gerenciamento de variáveis de ambiente (tokens).
+- **Monitoramento em Tempo Real**: Extração de dados diretamente do Mercado Livre.
+- **Integração com Telegram**: Alertas instantâneos com links de compra.
+- **Banco de Dados Flexível**: Suporta MongoDB Local (Docker) ou MongoDB Atlas.
+- **Seed Inteligente**: Cria automaticamente um produto de exemplo se o banco estiver vazio.
 
-## Como Instalar e Usar
+## 🛠️ Tecnologias
 
-1. Clone o repositório:
-   ```bash
-   git clone https://github.com/caethanoo/AutoEngineerBot.git
-   cd AutoEngineerBot
-   ```
+- **C# / .NET 8**
+- **MongoDB**: Armazenamento de produtos e histórico de preços.
+- **HtmlAgilityPack**: Parseamento de HTML para scraping.
+- **Docker**: Facilidade para rodar o banco de dados localmente.
+- **DotNetEnv**: Gerenciamento seguro de tokens e conexões.
 
-### 2️⃣ Configure seu Telegram (Protegido por .env)
-Nunca suba suas senhas para o GitHub! Nós utilizamos variáveis de ambiente para a sua segurança.
-1. Fale com o `@BotFather` no Telegram e crie um novo Bot. Ele te dará um **Token**.
-2. Pegue o seu próprio **Chat ID** (você pode descobrir mandando uma mensagem para o `@userinfobot` no Telegram).
-3. Na raiz do projeto, crie um arquivo chamado **apenas** `.env` copiando o modelo `.env.example`.
-4. Preencha o arquivo `.env` com os seus dados reais:
+## 📋 Como Instalar e Usar
 
-   ```env
-   TELEGRAM_BOT_TOKEN=seu_token_aqui
-   TELEGRAM_CHAT_ID=seu_chat_id_aqui
-   ```
+### 1. Clonar o Repositório
+```bash
+git clone https://github.com/caethanoo/AutoEngineerBot.git
+cd AutoEngineerBot
+```
 
-3. No arquivo `Program.cs`, ajuste a variável `urlAlvo` para o produto que deseja monitorar e o `precoDesejado` para a sua meta de preço.
+### 2. Configurar o Banco de Dados (Local via Docker)
+A forma mais fácil de rodar é usando Docker:
+```bash
+docker run -d --name mongodb-local -p 27017:27017 mongo:latest
+```
 
-4. Execute o projeto:
-   ```bash
-   cd AutoEngineerBot
-   dotnet run
-   ```
+### 3. Configurar Variáveis de Ambiente
+Crie um arquivo `.env` na pasta `AutoEngineerBot/` seguindo o modelo:
+
+```env
+TELEGRAM_BOT_TOKEN=seu_token_aqui
+TELEGRAM_CHAT_ID=seu_chat_id_aqui
+MONGO_CONNECTION=mongodb://localhost:27017/AutoEngineerDB
+```
+
+### 4. Executar o Projeto
+```bash
+cd AutoEngineerBot
+dotnet run
+```

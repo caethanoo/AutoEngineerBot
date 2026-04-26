@@ -1,8 +1,18 @@
+# .NET folders
 bin/
 obj/
+
+# Environment variables
 .env
+.env.local
+
+# IDE and OS files
 .DS_Store
 *.user
 *.suo
 .vscode/
 .idea/
+.vs/
+
+# MongoDB data (if any local folder used)
+data/
